@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"strings"
 
 	"golang.org/x/crypto/argon2"
 )
@@ -33,10 +34,37 @@ func (s *Service) HasPin() bool {
 	return s.storage.HasKey(PIN_KEY) && s.storage.HasKey(SALT_KEY)
 }
 
+func validPIN(s string) bool {
+	if strings.Contains(s, "2345") {
+		return false
+	}
+
+	repeatCount := 1
+	maxCount := 3
+	lastChar := ""
+	for _, r := range s {
+		c := string(r)
+		if c == lastChar {
+			repeatCount++
+			if repeatCount == maxCount {
+				return false
+			}
+		} else {
+			repeatCount = 1
+		}
+		lastChar = c
+	}
+	return true
+}
+
 func (s *Service) SetupPin(pin string) error {
 	if len(pin) < 6 {
 		return errors.New("PIN must be at least 6 characters")
 	}
+	if validPIN(pin) == false {
+		return errors.New("PIN must be more complex")
+	}
+
 	if s.HasPin() {
 		return errors.New("PIN is already set")
 	}
